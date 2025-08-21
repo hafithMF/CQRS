@@ -47,7 +47,7 @@ class ProductController extends Controller
         return $this->createProductHandler->handle($command);
     }
 
-    public function showin(int $id)
+    public function show(int $id)
     {
         $query = new GetProductByIdQuery($id);
         return $this->getProductByIdQueryHandler->handle($query);
