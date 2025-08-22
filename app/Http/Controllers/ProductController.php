@@ -2,77 +2,83 @@
 
 namespace App\Http\Controllers;
 
-use App\CQRS\Commands\Products\CreateProductCommand;
-use App\CQRS\Commands\Products\UpdateProductCommand;
-use App\CQRS\Commands\Products\DeleteProductCommand;
-use App\CQRS\Handlers\Products\CreateProductHandler;
-use App\CQRS\Handlers\Products\UpdateProductHandler;
-use App\CQRS\Handlers\Products\DeleteProductHandler;
-use App\CQRS\Queries\Products\GetAllProductsQuery;
-use App\CQRS\Queries\Products\GetProductByIdQuery;
-use App\CQRS\QueryHandlers\Products\GetAllProductsQueryHandler;
-use App\CQRS\QueryHandlers\Products\GetProductByIdQueryHandler;
-use Illuminate\Http\Request;
+use App\Commands\CreateProductCommand;
+use App\Commands\DeleteProductCommand;
+use App\Commands\UpdateProductCommand;
+use App\Commands\Handlers\CreateProductHandler;
+use App\Commands\Handlers\DeleteProductHandler;
+use App\Commands\Handlers\UpdateProductHandler;
+use App\Queries\GetAllProductsQuery;
+use App\Queries\GetProductByIdQuery;
+use App\Queries\QueryHandlers\GetAllProductsQueryHandler;
+use App\Queries\QueryHandlers\GetProductByIdQueryHandler;
+use App\Http\Requests\CreateProductRequest;
+use App\Http\Requests\UpdateProductRequest;
+use Illuminate\Http\JsonResponse;
 
 class ProductController extends Controller
 {
-    public function __construct(
-        private GetAllProductsQueryHandler $getAllProductsQueryHandler,
-        private GetProductByIdQueryHandler $getProductByIdQueryHandler,
-        private CreateProductHandler $createProductHandler,
-        private UpdateProductHandler $updateProductHandler,
-        private DeleteProductHandler $deleteProductHandler
-    ) {}
-
-    public function index()
-    {
-        $query = new GetAllProductsQuery();
-        return $this->getAllProductsQueryHandler->handle($query);
+    public function index(
+        GetAllProductsQueryHandler $handler,
+        GetAllProductsQuery $query
+    ): JsonResponse {
+        $products = $handler->handle($query);
+        return response()->json($products);
     }
 
-    public function store(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string',
-            'description' => 'required|string',
-            'price' => 'required|numeric'
-        ]);
+    public function show(
+        $id,
+        GetProductByIdQueryHandler $handler
+    ): JsonResponse {
+        $query = new GetProductByIdQuery($id);
+        $product = $handler->handle($query);
+        
+        return response()->json($product);
+    }
+
+    public function store(
+        CreateProductRequest $request,
+        CreateProductHandler $handler
+    ): JsonResponse {
+        $validated = $request->validated();
 
         $command = new CreateProductCommand(
-            $request->name,
-            $request->description,
-            $request->price
+            $validated['name'],
+            $validated['description'] ?? '',
+            $validated['price']
         );
 
-        return $this->createProductHandler->handle($command);
+        $product = $handler->handle($command);
+
+        return response()->json($product, 201);
     }
 
-    public function show(int $id)
-    {
-        $query = new GetProductByIdQuery($id);
-        return $this->getProductByIdQueryHandler->handle($query);
-    }
-
-    public function update(Request $request, $id)
-{
-    $request->validate([
-        'name' => 'sometimes|string',
-        'description' => 'sometimes|string',
-        'price' => 'sometimes|numeric'
-    ]);
-
-    $command = new UpdateProductCommand(
+    public function update(
+        UpdateProductRequest $request,
         $id,
-        $request->input('name'),
-        $request->input('description'),
-        $request->input('price')
-    );
+        UpdateProductHandler $handler
+    ): JsonResponse {
+        $validated = $request->validated();
 
-    return $this->updateProductHandler->handle($command);
-}
-    public function destroy($id)
-    {
+        $command = new UpdateProductCommand(
+            $id,
+            $validated['name'] ?? null,
+            $validated['description'] ?? null,
+            $validated['price'] ?? null
+        );
+
+        $product = $handler->handle($command);
+
+        return response()->json($product);
+    }
+
+    public function destroy(
+        $id,
+        DeleteProductHandler $handler
+    ): JsonResponse {
         $command = new DeleteProductCommand($id);
-        return $this->deleteProductHandler->handle($command);
+        $handler->handle($command);
+
+        return response()->json(null, 204);
     }
 }

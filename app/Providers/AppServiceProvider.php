@@ -2,35 +2,22 @@
 
 namespace App\Providers;
 
+use App\Interfaces\ProductRepositoryInterface;
+use App\Interfaces\ProductServiceInterface;
+use App\Repositories\ProductRepository;
+use App\Services\ProductService;
 use Illuminate\Support\ServiceProvider;
-use App\CQRS\QueryHandlers\Products\GetAllProductsQueryHandler;
-use App\CQRS\QueryHandlers\Products\GetProductByIdQueryHandler;
-use App\CQRS\Handlers\Products\CreateProductHandler;
-use App\CQRS\Handlers\Products\UpdateProductHandler;
-use App\CQRS\Handlers\Products\DeleteProductHandler;
 
 class AppServiceProvider extends ServiceProvider
 {
-    public function register()
+    public function register(): void
     {
-        $this->app->bind(GetAllProductsQueryHandler::class, function ($app) {
-            return new GetAllProductsQueryHandler();
-        });
+        $this->app->bind(ProductRepositoryInterface::class, ProductRepository::class);
+        $this->app->bind(ProductServiceInterface::class, ProductService::class);
+    }
 
-        $this->app->bind(GetProductByIdQueryHandler::class, function ($app) {
-            return new GetProductByIdQueryHandler();
-        });
-
-        $this->app->bind(CreateProductHandler::class, function ($app) {
-            return new CreateProductHandler();
-        });
-
-        $this->app->bind(UpdateProductHandler::class, function ($app) {
-            return new UpdateProductHandler();
-        });
-
-        $this->app->bind(DeleteProductHandler::class, function ($app) {
-            return new DeleteProductHandler();
-        });
+    public function boot(): void
+    {
+        //
     }
 }
